@@ -1,9 +1,12 @@
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trackerapp/controllers/notification_controller.dart';
+import 'package:trackerapp/models/routine.dart';
 import 'package:trackerapp/screens/task_detail_screen.dart';
+import 'package:trackerapp/services/routine_service.dart';
 import '../models/task.dart';
 
 enum SortMethod { byCreation, byStatus, byPriority, byTime }
@@ -15,11 +18,13 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late PageController _pageController;
   final List<GlobalKey> _dayKeys = List.generate(7, (_) => GlobalKey());
 
   final Map<String, List<Task>> _tasks = {};
+  List<Routine> _routines = [];
+  final RoutineService _routineService = RoutineService();
 
   final List<String> _dayNames = [
     'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'
@@ -33,27 +38,46 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   SortMethod _sortMethod = SortMethod.byCreation;
   bool _sortAscending = true;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadTasks();
+    WidgetsBinding.instance.addObserver(this);
+    _loadDataAndGenerateTasks();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadDataAndGenerateTasks();
+    }
+  }
+
+  Future<void> _loadDataAndGenerateTasks() async {
+    setState(() => _isLoading = true);
+    await _loadTasks();
+    await _loadRoutines();
+    _generateTasksFromRoutines();
     
     _selectedIndex = _focusedDate.weekday - 1;
     _pageController = PageController(initialPage: _selectedIndex);
     _generateWeekDayLabels();
+
+    setState(() => _isLoading = false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _scrollToSelectedDay(_selectedIndex);
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   String _getDateKey(DateTime date) {
@@ -91,16 +115,65 @@ class _HomeScreenState extends State<HomeScreen> {
     if (encodedTasks == null || encodedTasks.isEmpty) return;
 
     final Map<String, dynamic> decodedTasks = jsonDecode(encodedTasks);
-    
-    setState(() {
-      _tasks.clear();
-      decodedTasks.forEach((key, value) {
-        final List<Task> loadedTasks = (value as List)
-            .map((taskJson) => Task.fromJson(taskJson))
-            .toList();
-        _tasks[key] = loadedTasks;
-      });
+    _tasks.clear();
+    decodedTasks.forEach((key, value) {
+      final List<Task> loadedTasks = (value as List)
+          .map((taskJson) => Task.fromJson(taskJson))
+          .toList();
+      _tasks[key] = loadedTasks;
     });
+  }
+
+  Future<void> _loadRoutines() async {
+    _routines = await _routineService.loadRoutines();
+  }
+
+  void _generateTasksFromRoutines() {
+    if (_routines.isEmpty) return;
+
+    // Generate for a range of weeks to be safe (-2 to +2 weeks from current)
+    final today = DateTime.now();
+    final generationStartDate = today.subtract(const Duration(days: 14));
+
+    for (int i = 0; i < 30; i++) { // Generate for roughly a month
+      final date = generationStartDate.add(Duration(days: i));
+      final dateKey = _getDateKey(date);
+
+      for (final routine in _routines) {
+        bool shouldCreate = false;
+        switch (routine.frequency) {
+          case Frequency.daily:
+            shouldCreate = true;
+            break;
+          case Frequency.weekly:
+            if (date.weekday == routine.dayOfWeek) shouldCreate = true;
+            break;
+          case Frequency.monthly:
+            if (date.day == routine.dayOfMonth) shouldCreate = true;
+            break;
+        }
+
+        if (shouldCreate) {
+          final taskInstanceId = '${routine.id}-${dateKey}';
+          final dayTasks = _tasks.putIfAbsent(dateKey, () => []);
+          final taskExists = dayTasks.any((task) => task.id == taskInstanceId);
+
+          if (!taskExists) {
+            final newTask = Task(
+              id: taskInstanceId,
+              name: routine.name,
+              description: routine.description,
+              time: routine.time,
+              priority: routine.priority,
+              isCompleted: false,
+              notificationsEnabled: false, // Routines don't auto-enable notifications
+            );
+            dayTasks.add(newTask);
+          }
+        }
+      }
+    }
+    _saveTasks();
   }
 
   void _generateWeekDayLabels() {
@@ -162,11 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
       notificationsEnabled: notificationsEnabled,
     );
     setState(() {
-      if (_tasks.containsKey(dateKey)) {
-        _tasks[dateKey]!.add(newTask);
-      } else {
-        _tasks[dateKey] = [newTask];
-      }
+      _tasks.putIfAbsent(dateKey, () => []).add(newTask);
     });
     _saveTasks();
     if (newTask.notificationsEnabled) {
@@ -406,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       itemCount: tasks.length,
       itemBuilder: (context, index) {
         final task = tasks[index];
@@ -519,67 +588,67 @@ class _HomeScreenState extends State<HomeScreen> {
               : const SizedBox(width: 48), // Balance the leading button
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _weekDayLabels.length,
-              itemBuilder: (context, index) {
-                final dayLabel = _weekDayLabels[index];
-                final isSelected = _selectedIndex == index;
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Container(
+                  height: 60,
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _weekDayLabels.length,
+                    itemBuilder: (context, index) {
+                      final dayLabel = _weekDayLabels[index];
+                      final isSelected = _selectedIndex == index;
 
-                return Padding(
-                  key: _dayKeys[index],
-                  padding: EdgeInsets.only(left: index == 0 ? 16.0 : 4.0, right: index == _weekDayLabels.length - 1 ? 16.0 : 4.0),
-                  child: ChoiceChip(
-                    label: Text(dayLabel, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
-                    labelStyle: TextStyle(color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface),
-                    selected: isSelected,
-                    onSelected: (bool selected) {
-                      if (selected) {
-                        setState(() => _selectedIndex = index);
-                        _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                        _scrollToSelectedDay(index);
-                      }
+                      return Padding(
+                        key: _dayKeys[index],
+                        padding: EdgeInsets.only(left: index == 0 ? 16.0 : 4.0, right: index == _weekDayLabels.length - 1 ? 16.0 : 4.0),
+                        child: ChoiceChip(
+                          label: Text(dayLabel, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+                          labelStyle: TextStyle(color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface),
+                          selected: isSelected,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                            }
+                          },
+                          selectedColor: theme.colorScheme.primary,
+                          backgroundColor: theme.colorScheme.surfaceVariant,
+                        ),
+                      );
                     },
-                    selectedColor: theme.colorScheme.primary,
-                    backgroundColor: theme.colorScheme.surfaceVariant,
                   ),
-                );
-              },
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: _dayNames.length,
+                    onPageChanged: (index) {
+                      setState(() => _selectedIndex = index);
+                      _scrollToSelectedDay(index);
+                    },
+                    itemBuilder: (context, index) {
+                      final startOfWeek = _getStartOfWeek(_focusedDate);
+                      final dateForPage = startOfWeek.add(Duration(days: index));
+                      final dateKey = _getDateKey(dateForPage);
+                      final tasksForDay = _tasks[dateKey] ?? [];
+                      final sortedTasks = _sortTasks(tasksForDay);
+                      return Column(
+                        children: [
+                          _buildSortableHeader(),
+                          Expanded(
+                            child: _buildTaskList(sortedTasks, dateForPage),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _dayNames.length,
-              onPageChanged: (index) {
-                setState(() => _selectedIndex = index);
-                _scrollToSelectedDay(index);
-              },
-              itemBuilder: (context, index) {
-                final startOfWeek = _getStartOfWeek(_focusedDate);
-                final dateForPage = startOfWeek.add(Duration(days: index));
-                final dateKey = _getDateKey(dateForPage);
-                final tasksForDay = _tasks[dateKey] ?? [];
-                final sortedTasks = _sortTasks(tasksForDay);
-                return Column(
-                  children: [
-                    _buildSortableHeader(),
-                    Expanded(
-                      child: _buildTaskList(sortedTasks, dateForPage),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
         tooltip: 'Görev Ekle',
