@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatelessWidget {
   final ThemeMode themeMode;
@@ -10,6 +10,11 @@ class SettingsScreen extends StatelessWidget {
     required this.themeMode,
     required this.onThemeModeChanged,
   });
+
+  Future<void> _saveTheme(ThemeMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('themeMode', mode.index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,9 @@ class SettingsScreen extends StatelessWidget {
             trailing: Switch(
               value: themeMode == ThemeMode.dark,
               onChanged: (value) {
-                onThemeModeChanged(value ? ThemeMode.dark : ThemeMode.light);
+                final newMode = value ? ThemeMode.dark : ThemeMode.light;
+                onThemeModeChanged(newMode);
+                _saveTheme(newMode);
               },
             ),
           ),
@@ -34,4 +41,3 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
-

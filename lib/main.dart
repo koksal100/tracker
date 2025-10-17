@@ -1,10 +1,14 @@
-
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trackerapp/screens/all_tasks_screen.dart';
 import 'package:trackerapp/screens/home_screen.dart';
 import 'package:trackerapp/screens/settings_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final themeIndex = prefs.getInt('themeMode') ?? 0; // Default to light (index 0)
+  themeNotifier.value = ThemeMode.values[themeIndex];
   runApp(const MyApp());
 }
 
