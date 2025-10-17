@@ -1,9 +1,8 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
-import '../widgets/custom_app_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,10 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late PageController _pageController;
   final List<GlobalKey> _dayKeys = List.generate(7, (_) => GlobalKey());
 
-  final Map<String, List<Task>> _tasks = {
-    'Pazartesi': [], 'Salı': [], 'Çarşamba': [], 'Perşembe': [],
-    'Cuma': [], 'Cumartesi': [], 'Pazar': [],
-  };
+  final Map<String, List<Task>> _tasks = {};
 
   final List<String> _dayNames = [
     'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'
@@ -27,21 +23,24 @@ class _HomeScreenState extends State<HomeScreen> {
   
   List<String> _weekDayLabels = [];
   
-  String _selectedDay = 'Pazartesi';
+  DateTime _focusedDate = DateTime.now();
+  final DateTime _initialDate = DateTime.now();
+
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _generateWeekDayLabels();
     _loadTasks();
     
-    _selectedIndex = DateTime.now().weekday - 1;
-    _selectedDay = _dayNames[_selectedIndex];
+    _selectedIndex = _focusedDate.weekday - 1;
     _pageController = PageController(initialPage: _selectedIndex);
+    _generateWeekDayLabels();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToSelectedDay(_selectedIndex);
+      if (mounted) {
+        _scrollToSelectedDay(_selectedIndex);
+      }
     });
   }
 
@@ -49,6 +48,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  String _getDateKey(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
+
+  DateTime _getStartOfWeek(DateTime date) {
+    return date.subtract(Duration(days: date.weekday - 1));
   }
 
   void _scrollToSelectedDay(int index) {
@@ -63,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- Persistence Methods ---
   Future<void> _saveTasks() async {
     final prefs = await SharedPreferences.getInstance();
     final Map<String, dynamic> tasksToSave = _tasks.map(
@@ -90,21 +96,21 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     });
   }
-  // --- End Persistence Methods ---
 
   void _generateWeekDayLabels() {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-
+    final startOfWeek = _getStartOfWeek(_focusedDate);
     _weekDayLabels = List.generate(7, (index) {
       final date = startOfWeek.add(Duration(days: index));
       final dayName = _dayNames[index];
-      final formattedDate = '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}';
-      return '$dayName\n$formattedDate'; // Use newline for better layout
+      return '${dayName.substring(0, 3)} ${date.day}';
     });
   }
 
   void _addTask(String name, String description, TimeOfDay? time, TaskPriority priority) {
+    final startOfWeek = _getStartOfWeek(_focusedDate);
+    final selectedDate = startOfWeek.add(Duration(days: _selectedIndex));
+    final dateKey = _getDateKey(selectedDate);
+
     final newTask = Task(
       id: DateTime.now().toString(),
       name: name,
@@ -113,7 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
       priority: priority,
     );
     setState(() {
-      _tasks[_selectedDay]?.add(newTask);
+      if (_tasks.containsKey(dateKey)) {
+        _tasks[dateKey]!.add(newTask);
+      } else {
+        _tasks[dateKey] = [newTask];
+      }
     });
     _saveTasks();
   }
@@ -150,11 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return List.generate(count, (index) {
       return Padding(
         padding: const EdgeInsets.only(left: 2.0),
-        child: Icon(
-          Icons.circle,
-          color: color,
-          size: 12,
-        ),
+        child: Icon(Icons.circle, color: color, size: 12),
       );
     });
   }
@@ -165,13 +171,17 @@ class _HomeScreenState extends State<HomeScreen> {
     TimeOfDay? selectedTime;
     TaskPriority selectedPriority = TaskPriority.medium;
 
+    final startOfWeek = _getStartOfWeek(_focusedDate);
+    final selectedDate = startOfWeek.add(Duration(days: _selectedIndex));
+    final title = '${DateFormat('d MMMM', 'tr_TR').format(selectedDate)} için Yeni Görev';
+
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Center(child: Text('$_selectedDay için Yeni Görev Ekle')),
+              title: Center(child: Text(title)),
               content: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.5,
                 child: SingleChildScrollView(
@@ -192,21 +202,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 16),
                       DropdownButtonFormField<TaskPriority>(
                         value: selectedPriority,
-                        decoration: const InputDecoration(
-                          labelText: 'Önem Derecesi',
-                          border: OutlineInputBorder(),
-                        ),
+                        decoration: const InputDecoration(labelText: 'Önem Derecesi', border: OutlineInputBorder()),
                         items: TaskPriority.values.map((priority) {
-                          return DropdownMenuItem(
-                            value: priority,
-                            child: Text(priority.displayName),
-                          );
+                          return DropdownMenuItem(value: priority, child: Text(priority.displayName));
                         }).toList(),
                         onChanged: (newValue) {
                           if (newValue != null) {
-                            setDialogState(() {
-                              selectedPriority = newValue;
-                            });
+                            setDialogState(() => selectedPriority = newValue);
                           }
                         },
                       ),
@@ -222,9 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               initialTime: selectedTime ?? TimeOfDay.now(),
                             );
                             if (picked != null) {
-                              setDialogState(() {
-                                selectedTime = picked;
-                              });
+                              setDialogState(() => selectedTime = picked);
                             }
                           },
                         ),
@@ -234,22 +234,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('İptal'),
-                ),
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('İptal')),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24)
-                  ),
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 24)),
                   onPressed: () {
                     if (nameController.text.isNotEmpty) {
-                      _addTask(
-                        nameController.text,
-                        descriptionController.text,
-                        selectedTime,
-                        selectedPriority,
-                      );
+                      _addTask(nameController.text, descriptionController.text, selectedTime, selectedPriority);
                       Navigator.of(context).pop();
                     }
                   },
@@ -284,9 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Card(
           elevation: 1.0,
           margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -294,9 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
             leading: Checkbox(
               value: task.isCompleted,
               onChanged: (val) {
-                setState(() {
-                  task.isCompleted = val ?? false;
-                });
+                setState(() => task.isCompleted = val ?? false);
                 _saveTasks();
               },
               activeColor: _getPriorityColor(task.priority),
@@ -321,9 +307,38 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final weekDifference = _getStartOfWeek(_focusedDate).difference(_getStartOfWeek(_initialDate)).inDays;
+    final canGoBack = weekDifference > -7;
+    final canGoForward = weekDifference < 7;
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Haftalık Görev Takibi'),
+      appBar: AppBar(
+        leading: canGoBack
+            ? IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => setState(() {
+                  _focusedDate = _focusedDate.subtract(const Duration(days: 7));
+                  _generateWeekDayLabels();
+                }),
+              )
+            : const SizedBox(width: 48),
+        title: Text(
+          DateFormat.yMMMM('tr_TR').format(_focusedDate),
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        actions: [
+          canGoForward
+              ? IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: () => setState(() {
+                    _focusedDate = _focusedDate.add(const Duration(days: 7));
+                    _generateWeekDayLabels();
+                  }),
+                )
+              : const SizedBox(width: 48), // Balance the leading button
+        ],
+      ),
       body: Column(
         children: [
           Container(
@@ -334,7 +349,6 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: _weekDayLabels.length,
               itemBuilder: (context, index) {
                 final dayLabel = _weekDayLabels[index];
-                final dayName = _dayNames[index];
                 final isSelected = _selectedIndex == index;
 
                 return Padding(
@@ -346,15 +360,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     selected: isSelected,
                     onSelected: (bool selected) {
                       if (selected) {
-                        setState(() {
-                          _selectedIndex = index;
-                          _selectedDay = dayName;
-                        });
-                        _pageController.animateToPage(
-                          index,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
+                        setState(() => _selectedIndex = index);
+                        _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                         _scrollToSelectedDay(index);
                       }
                     },
@@ -371,15 +378,14 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: _pageController,
               itemCount: _dayNames.length,
               onPageChanged: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                  _selectedDay = _dayNames[index];
-                });
+                setState(() => _selectedIndex = index);
                 _scrollToSelectedDay(index);
               },
               itemBuilder: (context, index) {
-                final dayName = _dayNames[index];
-                final tasksForDay = _tasks[dayName] ?? [];
+                final startOfWeek = _getStartOfWeek(_focusedDate);
+                final dateForPage = startOfWeek.add(Duration(days: index));
+                final dateKey = _getDateKey(dateForPage);
+                final tasksForDay = _tasks[dateKey] ?? [];
                 return _buildTaskList(tasksForDay);
               },
             ),
