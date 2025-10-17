@@ -575,7 +575,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             : const SizedBox(width: 48),
         title: Text(
           DateFormat.yMMMM('tr_TR').format(_focusedDate),
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontFamily: 'DancingScript',
+            fontSize: 28, // Increased font size for handwritten style
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         actions: [

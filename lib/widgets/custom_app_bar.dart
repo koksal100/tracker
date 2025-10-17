@@ -15,7 +15,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Text(
         title,
         style: const TextStyle(
-          fontSize: 22, // Increased font size
+          fontFamily: 'DancingScript',
+          fontSize: 28, // Increased font size for handwritten style
           fontWeight: FontWeight.bold,
         ),
       ),
