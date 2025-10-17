@@ -8,6 +8,158 @@ import 'package:trackerapp/screens/all_tasks_screen.dart';
 import 'package:trackerapp/screens/home_screen.dart';
 import 'package:trackerapp/screens/settings_screen.dart';
 
+enum AppThemeMode {
+  light,
+  dark,
+  lemon,
+  tulip,
+  cake,
+  ocean,
+  forest,
+}
+
+extension AppThemeModeExtension on AppThemeMode {
+  String get displayName {
+    switch (this) {
+      case AppThemeMode.light:
+        return 'Aydınlık Mod';
+      case AppThemeMode.dark:
+        return 'Karanlık Mod';
+      case AppThemeMode.lemon:
+        return 'Limon Teması';
+      case AppThemeMode.tulip:
+        return 'Lale Teması';
+      case AppThemeMode.cake:
+        return 'Pasta Teması';
+      case AppThemeMode.ocean:
+        return 'Okyanus Teması';
+      case AppThemeMode.forest:
+        return 'Orman Teması';
+    }
+  }
+}
+
+ThemeData _buildTheme(AppThemeMode mode) {
+  ColorScheme colorScheme;
+  Brightness brightness;
+  TimePickerThemeData timePickerTheme;
+
+  switch (mode) {
+    case AppThemeMode.light:
+      brightness = Brightness.light;
+      colorScheme = const ColorScheme.light(
+        primary: Colors.black,
+        onPrimary: Colors.white,
+        secondary: Colors.black,
+        surface: Colors.white,
+        onSurface: Colors.black,
+        background: Colors.white,
+      );
+      timePickerTheme = TimePickerThemeData(
+        dayPeriodTextColor: Colors.black,
+        dayPeriodColor: Colors.grey.shade200,
+      );
+      break;
+    case AppThemeMode.dark:
+      brightness = Brightness.dark;
+      colorScheme = const ColorScheme.dark(
+        primary: Colors.white,
+        onPrimary: Colors.black,
+        secondary: Colors.white,
+        surface: Colors.black,
+        onSurface: Colors.white,
+        background: Colors.black,
+      );
+      timePickerTheme = TimePickerThemeData(
+        dayPeriodTextColor: Colors.white,
+        dayPeriodColor: Colors.black,
+      );
+      break;
+    case AppThemeMode.lemon:
+      brightness = Brightness.light;
+      colorScheme = ColorScheme.light(
+        primary: Colors.yellow.shade700,
+        onPrimary: Colors.black,
+        secondary: Colors.green.shade500,
+        surface: Colors.yellow.shade100,
+        onSurface: Colors.black,
+        background: Colors.yellow.shade50,
+      );
+      timePickerTheme = TimePickerThemeData(
+        dayPeriodTextColor: Colors.black,
+        dayPeriodColor: Colors.yellow.shade200,
+      );
+      break;
+    case AppThemeMode.tulip:
+      brightness = Brightness.light;
+      colorScheme = ColorScheme.light(
+        primary: Colors.red.shade700,
+        onPrimary: Colors.white,
+        secondary: Colors.pink.shade300,
+        surface: Colors.red.shade50,
+        onSurface: Colors.black,
+        background: Colors.white,
+      );
+      timePickerTheme = TimePickerThemeData(
+        dayPeriodTextColor: Colors.black,
+        dayPeriodColor: Colors.pink.shade100,
+      );
+      break;
+    case AppThemeMode.cake:
+      brightness = Brightness.light;
+      colorScheme = ColorScheme.light(
+        primary: Colors.pink.shade400,
+        onPrimary: Colors.white,
+        secondary: Colors.brown.shade400,
+        surface: Colors.pink.shade50,
+        onSurface: Colors.black,
+        background: Colors.white,
+      );
+      timePickerTheme = TimePickerThemeData(
+        dayPeriodTextColor: Colors.black,
+        dayPeriodColor: Colors.pink.shade100,
+      );
+      break;
+    case AppThemeMode.ocean:
+      brightness = Brightness.light;
+      colorScheme = ColorScheme.light(
+        primary: Colors.blue.shade700,
+        onPrimary: Colors.white,
+        secondary: Colors.cyan.shade400,
+        surface: Colors.blue.shade50,
+        onSurface: Colors.black,
+        background: Colors.lightBlue.shade50,
+      );
+      timePickerTheme = TimePickerThemeData(
+        dayPeriodTextColor: Colors.black,
+        dayPeriodColor: Colors.blue.shade100,
+      );
+      break;
+    case AppThemeMode.forest:
+      brightness = Brightness.dark; // Forest theme can be dark
+      colorScheme = ColorScheme.dark(
+        primary: Colors.green.shade700,
+        onPrimary: Colors.white,
+        secondary: Colors.brown.shade600,
+        surface: Colors.green.shade900,
+        onSurface: Colors.white,
+        background: Colors.green.shade900,
+      );
+      timePickerTheme = TimePickerThemeData(
+        dayPeriodTextColor: Colors.white,
+        dayPeriodColor: Colors.green.shade700,
+      );
+      break;
+  }
+
+  return ThemeData(
+    brightness: brightness,
+    colorScheme: colorScheme,
+    timePickerTheme: timePickerTheme,
+    useMaterial3: true,
+  );
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('tr_TR', null);
@@ -17,19 +169,19 @@ void main() async {
   await NotificationController.requestPermissions();
 
   final prefs = await SharedPreferences.getInstance();
-  final themeIndex = prefs.getInt('themeMode') ?? 0; // Default to light (index 0)
-  themeNotifier.value = ThemeMode.values[themeIndex];
+  final themeIndex = prefs.getInt('themeMode') ?? AppThemeMode.light.index;
+  themeNotifier.value = AppThemeMode.values[themeIndex];
   runApp(const MyApp());
 }
 
-final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+final ValueNotifier<AppThemeMode> themeNotifier = ValueNotifier(AppThemeMode.light);
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
+    return ValueListenableBuilder<AppThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, currentMode, child) {
         return MaterialApp(
@@ -42,39 +194,7 @@ class MyApp extends StatelessWidget {
           supportedLocales: const [
             Locale('tr', 'TR'),
           ],
-          theme: ThemeData(
-            brightness: Brightness.light,
-            colorScheme: const ColorScheme.light(
-              primary: Colors.black,
-              onPrimary: Colors.white,
-              secondary: Colors.black,
-              surface: Colors.white,
-              onSurface: Colors.black,
-              background: Colors.white,
-            ),
-            timePickerTheme: TimePickerThemeData(
-              dayPeriodTextColor: Colors.black,
-              dayPeriodColor: Colors.grey.shade200, // Unselected background
-            ),
-            useMaterial3: true,
-          ),
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.white,
-              onPrimary: Colors.black,
-              secondary: Colors.white,
-              surface: Colors.black,
-              onSurface: Colors.white,
-              background: Colors.black,
-            ),
-            timePickerTheme: TimePickerThemeData(
-              dayPeriodTextColor: Colors.white,
-              dayPeriodColor: Colors.black, // Unselected background
-            ),
-            useMaterial3: true,
-          ),
-          themeMode: currentMode,
+          theme: _buildTheme(currentMode),
           home: const MainScreen(),
           debugShowCheckedModeBanner: false,
         );

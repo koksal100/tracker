@@ -249,6 +249,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   textStyle: const TextStyle(fontSize: 16),
+                  side: BorderSide(color: Theme.of(context).colorScheme.onSurface, width: 1.0), // White thin border
                 ),
               ),
             ),

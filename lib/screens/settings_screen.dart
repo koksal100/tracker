@@ -1,11 +1,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trackerapp/main.dart'; // Import main.dart to access AppThemeMode
 import '../widgets/custom_app_bar.dart';
 
 class SettingsScreen extends StatelessWidget {
-  final ThemeMode themeMode;
-  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final AppThemeMode themeMode;
+  final ValueChanged<AppThemeMode> onThemeModeChanged;
 
   const SettingsScreen({
     super.key,
@@ -13,7 +14,7 @@ class SettingsScreen extends StatelessWidget {
     required this.onThemeModeChanged,
   });
 
-  Future<void> _saveTheme(ThemeMode mode) async {
+  Future<void> _saveTheme(AppThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('themeMode', mode.index);
   }
@@ -26,14 +27,20 @@ class SettingsScreen extends StatelessWidget {
         children: [
           ListTile(
             title: const Text('Uygulama Teması'),
-            subtitle: Text(themeMode == ThemeMode.dark ? 'Karanlık Mod' : 'Aydınlık Mod'),
-            trailing: Switch(
-              value: themeMode == ThemeMode.dark,
-              onChanged: (value) {
-                final newMode = value ? ThemeMode.dark : ThemeMode.light;
-                onThemeModeChanged(newMode);
-                _saveTheme(newMode);
+            trailing: DropdownButton<AppThemeMode>(
+              value: themeMode,
+              onChanged: (AppThemeMode? newValue) {
+                if (newValue != null) {
+                  onThemeModeChanged(newValue);
+                  _saveTheme(newValue);
+                }
               },
+              items: AppThemeMode.values.map<DropdownMenuItem<AppThemeMode>>((AppThemeMode mode) {
+                return DropdownMenuItem<AppThemeMode>(
+                  value: mode,
+                  child: Text(mode.displayName),
+                );
+              }).toList(),
             ),
           ),
         ],

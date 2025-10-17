@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final RoutineService _routineService = RoutineService();
 
   final List<String> _dayNames = [
-    'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'
+    'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'
   ];
   
   List<String> _weekDayLabels = [];
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _weekDayLabels = List.generate(7, (index) {
       final date = startOfWeek.add(Duration(days: index));
       final dayName = _dayNames[index];
-      return '${dayName.substring(0, 3)} ${date.day}';
+      return '${dayName} ${date.day}';
     });
   }
 
