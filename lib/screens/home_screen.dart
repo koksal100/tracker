@@ -11,30 +11,54 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Map to hold tasks, keyed by day name
+  late PageController _pageController;
+  final List<GlobalKey> _dayKeys = List.generate(7, (_) => GlobalKey());
+
   final Map<String, List<Task>> _tasks = {
     'Pazartesi': [], 'Salı': [], 'Çarşamba': [], 'Perşembe': [],
     'Cuma': [], 'Cumartesi': [], 'Pazar': [],
   };
 
-  // Day names for keys and logic
   final List<String> _dayNames = [
     'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'
   ];
   
-  // Display labels with dates
   List<String> _weekDayLabels = [];
   
-  // Selected day name
   String _selectedDay = 'Pazartesi';
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _generateWeekDayLabels();
     _loadTasks();
-    // Set selected day to today
-    _selectedDay = _dayNames[DateTime.now().weekday - 1];
+    
+    _selectedIndex = DateTime.now().weekday - 1;
+    _selectedDay = _dayNames[_selectedIndex];
+    _pageController = PageController(initialPage: _selectedIndex);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedDay(_selectedIndex);
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelectedDay(int index) {
+    final key = _dayKeys[index];
+    if (key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.5, // Center the item
+      );
+    }
   }
 
   // --- Persistence Methods ---
@@ -92,11 +116,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _saveTasks();
   }
 
-  // Black and white priority colors
   Color _getPriorityColor(TaskPriority priority) {
     switch (priority) {
       case TaskPriority.high:
-        return Colors.red.shade700; // More intense red
+        return Colors.red.shade700;
       case TaskPriority.medium:
         return Colors.pink.shade300;
       case TaskPriority.low:
@@ -106,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-    List<Widget> _generatePriorityIcons(TaskPriority priority) {
+  List<Widget> _generatePriorityIcons(TaskPriority priority) {
     final color = _getPriorityColor(priority);
     int count;
     switch (priority) {
@@ -148,65 +171,65 @@ class _HomeScreenState extends State<HomeScreen> {
             return AlertDialog(
               title: Center(child: Text('$_selectedDay için Yeni Görev Ekle')),
               content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.5, // Set a constrained width
+                width: MediaQuery.of(context).size.width * 0.5,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Görev Adı', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(labelText: 'Açıklama', border: OutlineInputBorder()),
-                      keyboardType: TextInputType.multiline,
-                      maxLines: 3, // Allow up to 3 lines, then scrolls
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<TaskPriority>(
-                      value: selectedPriority,
-                      decoration: const InputDecoration(
-                        labelText: 'Önem Derecesi',
-                        border: OutlineInputBorder(),
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Görev Adı', border: OutlineInputBorder()),
                       ),
-                      items: TaskPriority.values.map((priority) {
-                        return DropdownMenuItem(
-                          value: priority,
-                          child: Text(priority.displayName),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        if (newValue != null) {
-                          setDialogState(() {
-                            selectedPriority = newValue;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.access_time),
-                        title: const Text('Görev Saati'),
-                        subtitle: Text(selectedTime?.format(context) ?? 'Belirtilmedi'),
-                        onTap: () async {
-                          final TimeOfDay? picked = await showTimePicker(
-                            context: context,
-                            initialTime: selectedTime ?? TimeOfDay.now(),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(labelText: 'Açıklama', border: OutlineInputBorder()),
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<TaskPriority>(
+                        value: selectedPriority,
+                        decoration: const InputDecoration(
+                          labelText: 'Önem Derecesi',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: TaskPriority.values.map((priority) {
+                          return DropdownMenuItem(
+                            value: priority,
+                            child: Text(priority.displayName),
                           );
-                          if (picked != null) {
+                        }).toList(),
+                        onChanged: (newValue) {
+                          if (newValue != null) {
                             setDialogState(() {
-                              selectedTime = picked;
+                              selectedPriority = newValue;
                             });
                           }
                         },
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.access_time),
+                          title: const Text('Görev Saati'),
+                          subtitle: Text(selectedTime?.format(context) ?? 'Belirtilmedi'),
+                          onTap: () async {
+                            final TimeOfDay? picked = await showTimePicker(
+                              context: context,
+                              initialTime: selectedTime ?? TimeOfDay.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedTime = picked;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               ),
               actions: [
                 TextButton(
@@ -238,9 +261,63 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildTaskList(List<Task> tasks) {
+    if (tasks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle_outline, size: 80, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text('Harika! Bu gün için görev yok.', style: TextStyle(fontSize: 18, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(8.0),
+      itemCount: tasks.length,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        return Card(
+          elevation: 1.0,
+          margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: task.description.isNotEmpty ? Text(task.description) : null,
+            leading: Checkbox(
+              value: task.isCompleted,
+              onChanged: (val) {
+                setState(() {
+                  task.isCompleted = val ?? false;
+                });
+                _saveTasks();
+              },
+              activeColor: _getPriorityColor(task.priority),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (task.time != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Text(task.time!.format(context), style: const TextStyle(fontWeight: FontWeight.w500)),
+                  ),
+                ..._generatePriorityIcons(task.priority),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentTasks = _tasks[_selectedDay] ?? [];
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -251,7 +328,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // Day Selector
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -261,19 +337,27 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, index) {
                 final dayLabel = _weekDayLabels[index];
                 final dayName = _dayNames[index];
-                final isSelected = _selectedDay == dayName;
+                final isSelected = _selectedIndex == index;
 
                 return Padding(
+                  key: _dayKeys[index],
                   padding: EdgeInsets.only(left: index == 0 ? 16.0 : 4.0, right: index == _weekDayLabels.length - 1 ? 16.0 : 4.0),
                   child: ChoiceChip(
                     label: Text(dayLabel, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
                     labelStyle: TextStyle(color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface),
                     selected: isSelected,
-                    onSelected: (wasSelected) {
-                      if (wasSelected) {
+                    onSelected: (bool selected) {
+                      if (selected) {
                         setState(() {
+                          _selectedIndex = index;
                           _selectedDay = dayName;
                         });
+                        _pageController.animateToPage(
+                          index,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                        _scrollToSelectedDay(index);
                       }
                     },
                     selectedColor: theme.colorScheme.primary,
@@ -284,59 +368,23 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const Divider(height: 1),
-          // Task List
           Expanded(
-            child: currentTasks.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle_outline, size: 80, color: Colors.grey.shade400),
-                        const SizedBox(height: 16),
-                        const Text('Harika! Bu gün için görev yok.', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(8.0),
-                    itemCount: currentTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = currentTasks[index];
-                      return Card(
-                        elevation: 1.0,
-                        margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                          title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: task.description.isNotEmpty ? Text(task.description) : null,
-                          leading: Checkbox(
-                            value: task.isCompleted,
-                            onChanged: (val) {
-                              setState(() {
-                                task.isCompleted = val ?? false;
-                              });
-                              _saveTasks(); // Save on completion change
-                            },
-                            activeColor: _getPriorityColor(task.priority),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (task.time != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: Text(task.time!.format(context), style: const TextStyle(fontWeight: FontWeight.w500)),
-                                ),
-                              ..._generatePriorityIcons(task.priority), // Spread the list of icons here
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _dayNames.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                  _selectedDay = _dayNames[index];
+                });
+                _scrollToSelectedDay(index);
+              },
+              itemBuilder: (context, index) {
+                final dayName = _dayNames[index];
+                final tasksForDay = _tasks[dayName] ?? [];
+                return _buildTaskList(tasksForDay);
+              },
+            ),
           ),
         ],
       ),
