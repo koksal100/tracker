@@ -1,7 +1,10 @@
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trackerapp/controllers/notification_controller.dart';
+import 'package:trackerapp/screens/task_detail_screen.dart';
 import '../models/task.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -106,17 +109,18 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _addTask(String name, String description, TimeOfDay? time, TaskPriority priority) {
+  void _addTask(String name, String description, TimeOfDay? time, TaskPriority priority, bool notificationsEnabled) {
     final startOfWeek = _getStartOfWeek(_focusedDate);
     final selectedDate = startOfWeek.add(Duration(days: _selectedIndex));
     final dateKey = _getDateKey(selectedDate);
 
     final newTask = Task(
-      id: DateTime.now().toString(),
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
       description: description,
       time: time,
       priority: priority,
+      notificationsEnabled: notificationsEnabled,
     );
     setState(() {
       if (_tasks.containsKey(dateKey)) {
@@ -126,6 +130,45 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
     _saveTasks();
+    if (newTask.notificationsEnabled) {
+      NotificationController.scheduleNotification(newTask, selectedDate);
+    }
+  }
+
+  void _updateTask(Task oldTask, Task newTask) {
+    final startOfWeek = _getStartOfWeek(_focusedDate);
+    final dateForTask = startOfWeek.add(Duration(days: _selectedIndex));
+    final dateKey = _getDateKey(dateForTask);
+
+    final tasksForDay = _tasks[dateKey];
+    if (tasksForDay == null) return;
+
+    final taskIndex = tasksForDay.indexWhere((t) => t.id == oldTask.id);
+    if (taskIndex != -1) {
+      setState(() {
+        tasksForDay[taskIndex] = newTask;
+      });
+      _saveTasks();
+
+      NotificationController.cancelNotification(oldTask);
+      if (newTask.notificationsEnabled) {
+        NotificationController.scheduleNotification(newTask, dateForTask);
+      }
+    }
+  }
+
+  void _deleteTask(Task taskToDelete) {
+    final startOfWeek = _getStartOfWeek(_focusedDate);
+    final dateForTask = startOfWeek.add(Duration(days: _selectedIndex));
+    final dateKey = _getDateKey(dateForTask);
+    final tasksForDay = _tasks[dateKey];
+    if (tasksForDay == null) return;
+
+    setState(() {
+      tasksForDay.removeWhere((t) => t.id == taskToDelete.id);
+    });
+    _saveTasks();
+    NotificationController.cancelNotification(taskToDelete);
   }
 
   Color _getPriorityColor(TaskPriority priority) {
@@ -170,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final descriptionController = TextEditingController();
     TimeOfDay? selectedTime;
     TaskPriority selectedPriority = TaskPriority.medium;
+    bool notificationsEnabled = false;
 
     final startOfWeek = _getStartOfWeek(_focusedDate);
     final selectedDate = startOfWeek.add(Duration(days: _selectedIndex));
@@ -227,8 +271,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               setDialogState(() => selectedTime = picked);
                             }
                           },
+                           trailing: selectedTime != null ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            onPressed: () => setDialogState(() {
+                              selectedTime = null;
+                              notificationsEnabled = false;
+                            }),
+                          ) : null,
                         ),
                       ),
+                      if (selectedTime != null)
+                        SwitchListTile(
+                          title: const Text('Bildirimleri Aç'),
+                          value: notificationsEnabled,
+                          onChanged: (bool value) => setDialogState(() => notificationsEnabled = value),
+                        ),
                     ],
                   ),
                 ),
@@ -239,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 24)),
                   onPressed: () {
                     if (nameController.text.isNotEmpty) {
-                      _addTask(nameController.text, descriptionController.text, selectedTime, selectedPriority);
+                      _addTask(nameController.text, descriptionController.text, selectedTime, selectedPriority, notificationsEnabled);
                       Navigator.of(context).pop();
                     }
                   },
@@ -253,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTaskList(List<Task> tasks) {
+  Widget _buildTaskList(List<Task> tasks, DateTime dateForTasks) {
     if (tasks.isEmpty) {
       return Center(
         child: Column(
@@ -276,6 +333,25 @@ class _HomeScreenState extends State<HomeScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           child: ListTile(
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TaskDetailScreen(
+                    task: task,
+                    taskDate: dateForTasks,
+                  ),
+                ),
+              );
+
+              if (result != null && mounted) {
+                if (result == 'deleted') {
+                  _deleteTask(task);
+                } else if (result is Task) {
+                  _updateTask(task, result);
+                }
+              }
+            },
             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: task.description.isNotEmpty ? Text(task.description) : null,
@@ -290,9 +366,11 @@ class _HomeScreenState extends State<HomeScreen> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (task.notificationsEnabled)
+                  const Icon(Icons.notifications, size: 16, color: Colors.grey),
                 if (task.time != null)
                   Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
+                    padding: const EdgeInsets.only(right: 8.0, left: 4.0),
                     child: Text(task.time!.format(context), style: const TextStyle(fontWeight: FontWeight.w500)),
                   ),
                 ..._generatePriorityIcons(task.priority),
@@ -386,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 final dateForPage = startOfWeek.add(Duration(days: index));
                 final dateKey = _getDateKey(dateForPage);
                 final tasksForDay = _tasks[dateKey] ?? [];
-                return _buildTaskList(tasksForDay);
+                return _buildTaskList(tasksForDay, dateForPage);
               },
             ),
           ),

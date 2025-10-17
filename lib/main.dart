@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trackerapp/controllers/notification_controller.dart';
 import 'package:trackerapp/screens/all_tasks_screen.dart';
 import 'package:trackerapp/screens/home_screen.dart';
 import 'package:trackerapp/screens/settings_screen.dart';
@@ -10,6 +11,11 @@ import 'package:trackerapp/screens/settings_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('tr_TR', null);
+
+  // Initialize Notification Controller
+  await NotificationController.initializeLocalNotifications();
+  await NotificationController.requestPermissions();
+
   final prefs = await SharedPreferences.getInstance();
   final themeIndex = prefs.getInt('themeMode') ?? 0; // Default to light (index 0)
   themeNotifier.value = ThemeMode.values[themeIndex];

@@ -22,6 +22,7 @@ class Task {
   final TimeOfDay? time;
   final TaskPriority priority;
   bool isCompleted;
+  bool notificationsEnabled;
 
   Task({
     required this.id,
@@ -30,6 +31,7 @@ class Task {
     this.time,
     required this.priority,
     this.isCompleted = false,
+    this.notificationsEnabled = false,
   });
 
   // Serialization: Task object -> Map
@@ -41,6 +43,7 @@ class Task {
       'time': time != null ? {'hour': time!.hour, 'minute': time!.minute} : null,
       'priority': priority.index, // Store enum as its index
       'isCompleted': isCompleted,
+      'notificationsEnabled': notificationsEnabled,
     };
   }
 
@@ -55,7 +58,7 @@ class Task {
           : null,
       priority: TaskPriority.values[json['priority']], // Get enum from index
       isCompleted: json['isCompleted'],
+      notificationsEnabled: json['notificationsEnabled'] ?? false,
     );
   }
 }
-
