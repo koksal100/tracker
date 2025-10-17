@@ -50,7 +50,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               Navigator.of(context).pop(); // Close dialog
               Navigator.of(context).pop('deleted'); // Pop screen with result
             },
-            child: const Text('Sil', style: TextStyle(color: Colors.red)),
+            child: Text('Sil', style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -112,7 +112,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 const SizedBox(height: 16),
                 Card(
                   margin: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Theme.of(context).colorScheme.outline)),
                   child: ListTile(
                     leading: const Icon(Icons.access_time),
                     title: const Text('Görev Saati'),
@@ -127,7 +127,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       }
                     },
                     trailing: _selectedTime != null ? IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.grey),
+                      icon: Icon(Icons.clear, color: Theme.of(context).colorScheme.outline),
                       onPressed: () => setState(() {
                         _selectedTime = null;
                         _notificationsEnabled = false;
@@ -151,8 +151,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextButton.icon(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  label: const Text('Görevi Sil', style: TextStyle(color: Colors.red)),
+                  icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+                  label: Text('Görevi Sil', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   onPressed: _deleteTask,
                 ),
               ],

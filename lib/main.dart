@@ -7,6 +7,7 @@ import 'package:trackerapp/controllers/notification_controller.dart';
 import 'package:trackerapp/screens/all_tasks_screen.dart';
 import 'package:trackerapp/screens/home_screen.dart';
 import 'package:trackerapp/screens/settings_screen.dart';
+import 'package:trackerapp/utils/app_colors.dart';
 
 enum AppThemeMode {
   light,
@@ -47,107 +48,58 @@ ThemeData _buildTheme(AppThemeMode mode) {
   switch (mode) {
     case AppThemeMode.light:
       brightness = Brightness.light;
-      colorScheme = const ColorScheme.light(
-        primary: Colors.black,
-        onPrimary: Colors.white,
-        secondary: Colors.black,
-        surface: Colors.white,
-        onSurface: Colors.black,
-        background: Colors.white,
-      );
+      colorScheme = AppColors.lightColorScheme;
       timePickerTheme = TimePickerThemeData(
-        dayPeriodTextColor: Colors.black,
-        dayPeriodColor: Colors.grey.shade200,
+        dayPeriodTextColor: colorScheme.onSurface,
+        dayPeriodColor: colorScheme.surfaceVariant,
       );
       break;
     case AppThemeMode.dark:
       brightness = Brightness.dark;
-      colorScheme = const ColorScheme.dark(
-        primary: Colors.white,
-        onPrimary: Colors.black,
-        secondary: Colors.white,
-        surface: Colors.black,
-        onSurface: Colors.white,
-        background: Colors.black,
-      );
+      colorScheme = AppColors.darkColorScheme;
       timePickerTheme = TimePickerThemeData(
-        dayPeriodTextColor: Colors.white,
-        dayPeriodColor: Colors.black,
+        dayPeriodTextColor: colorScheme.onSurface,
+        dayPeriodColor: colorScheme.surfaceVariant,
       );
       break;
     case AppThemeMode.lemon:
       brightness = Brightness.light;
-      colorScheme = ColorScheme.light(
-        primary: Colors.yellow.shade700,
-        onPrimary: Colors.black,
-        secondary: Colors.green.shade500,
-        surface: Colors.yellow.shade100,
-        onSurface: Colors.black,
-        background: Colors.yellow.shade50,
-      );
+      colorScheme = AppColors.lemonColorScheme;
       timePickerTheme = TimePickerThemeData(
-        dayPeriodTextColor: Colors.black,
-        dayPeriodColor: Colors.yellow.shade200,
+        dayPeriodTextColor: colorScheme.onSurface,
+        dayPeriodColor: colorScheme.surfaceVariant,
       );
       break;
     case AppThemeMode.tulip:
       brightness = Brightness.light;
-      colorScheme = ColorScheme.light(
-        primary: Colors.red.shade700,
-        onPrimary: Colors.white,
-        secondary: Colors.pink.shade300,
-        surface: Colors.red.shade50,
-        onSurface: Colors.black,
-        background: Colors.white,
-      );
+      colorScheme = AppColors.tulipColorScheme;
       timePickerTheme = TimePickerThemeData(
-        dayPeriodTextColor: Colors.black,
-        dayPeriodColor: Colors.pink.shade100,
+        dayPeriodTextColor: colorScheme.onSurface,
+        dayPeriodColor: colorScheme.surfaceVariant,
       );
       break;
     case AppThemeMode.cake:
       brightness = Brightness.light;
-      colorScheme = ColorScheme.light(
-        primary: Colors.pink.shade400,
-        onPrimary: Colors.white,
-        secondary: Colors.brown.shade400,
-        surface: Colors.pink.shade50,
-        onSurface: Colors.black,
-        background: Colors.white,
-      );
+      colorScheme = AppColors.cakeColorScheme;
       timePickerTheme = TimePickerThemeData(
-        dayPeriodTextColor: Colors.black,
-        dayPeriodColor: Colors.pink.shade100,
+        dayPeriodTextColor: colorScheme.onSurface,
+        dayPeriodColor: colorScheme.surfaceVariant,
       );
       break;
     case AppThemeMode.ocean:
       brightness = Brightness.light;
-      colorScheme = ColorScheme.light(
-        primary: Colors.blue.shade700,
-        onPrimary: Colors.white,
-        secondary: Colors.cyan.shade400,
-        surface: Colors.blue.shade50,
-        onSurface: Colors.black,
-        background: Colors.lightBlue.shade50,
-      );
+      colorScheme = AppColors.oceanColorScheme;
       timePickerTheme = TimePickerThemeData(
-        dayPeriodTextColor: Colors.black,
-        dayPeriodColor: Colors.blue.shade100,
+        dayPeriodTextColor: colorScheme.onSurface,
+        dayPeriodColor: colorScheme.surfaceVariant,
       );
       break;
     case AppThemeMode.forest:
       brightness = Brightness.dark; // Forest theme can be dark
-      colorScheme = ColorScheme.dark(
-        primary: Colors.green.shade700,
-        onPrimary: Colors.white,
-        secondary: Colors.brown.shade600,
-        surface: Colors.green.shade900,
-        onSurface: Colors.white,
-        background: Colors.green.shade900,
-      );
+      colorScheme = AppColors.forestColorScheme;
       timePickerTheme = TimePickerThemeData(
-        dayPeriodTextColor: Colors.white,
-        dayPeriodColor: Colors.green.shade700,
+        dayPeriodTextColor: colorScheme.onSurface,
+        dayPeriodColor: colorScheme.surfaceVariant,
       );
       break;
   }

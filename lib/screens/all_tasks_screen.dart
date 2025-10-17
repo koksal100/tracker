@@ -5,6 +5,7 @@ import 'package:trackerapp/models/routine.dart';
 import 'package:trackerapp/models/task.dart';
 import 'package:trackerapp/screens/create_routine_screen.dart';
 import 'package:trackerapp/services/routine_service.dart';
+import '../utils/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
 
 enum SortMethodRoutines { byName, byFrequency, byTime, byPriority }
@@ -88,7 +89,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('İptal')),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sil', style: TextStyle(color: Colors.red)),
+            child: Text('Sil', style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -150,16 +151,17 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
     }
   }
 
+
   Color _getPriorityColor(TaskPriority priority) {
     switch (priority) {
       case TaskPriority.high:
-        return Colors.red.shade700;
+        return AppColors.priorityHighColor;
       case TaskPriority.medium:
-        return Colors.pink.shade300;
+        return AppColors.priorityMediumColor;
       case TaskPriority.low:
-        return Colors.pink.shade100;
+        return AppColors.priorityLowColor;
       default:
-        return Colors.grey;
+        return AppColors.priorityDefaultColor;
     }
   }
 
@@ -314,7 +316,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                       SizedBox(
                                         width: 48,
                                         child: IconButton(
-                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                          icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
                                           onPressed: () => _deleteRoutine(routine),
                                         ),
                                       ),

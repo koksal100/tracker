@@ -124,7 +124,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                 const SizedBox(height: 16),
                 Card(
                   margin: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Theme.of(context).colorScheme.outline)),
                   child: ListTile(
                     leading: const Icon(Icons.access_time),
                     title: const Text('Görevin Saati'),

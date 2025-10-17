@@ -8,6 +8,7 @@ import 'package:trackerapp/models/routine.dart';
 import 'package:trackerapp/screens/task_detail_screen.dart';
 import 'package:trackerapp/services/routine_service.dart';
 import '../models/task.dart';
+import '../utils/app_colors.dart';
 
 enum SortMethod { byCreation, byStatus, byPriority, byTime }
 
@@ -279,16 +280,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     NotificationController.cancelNotification(taskToDelete);
   }
 
+
   Color _getPriorityColor(TaskPriority priority) {
     switch (priority) {
       case TaskPriority.high:
-        return Colors.red.shade700;
+        return AppColors.priorityHighColor;
       case TaskPriority.medium:
-        return Colors.pink.shade300;
+        return AppColors.priorityMediumColor;
       case TaskPriority.low:
-        return Colors.pink.shade100;
+        return AppColors.priorityLowColor;
       default:
-        return Colors.grey;
+        return AppColors.priorityDefaultColor;
     }
   }
 
@@ -380,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             }
                           },
                            trailing: selectedTime != null ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            icon: Icon(Icons.clear, color: Theme.of(context).colorScheme.outline),
                             onPressed: () => setDialogState(() {
                               selectedTime = null;
                               notificationsEnabled = false;
@@ -431,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Icon(
                 Icons.check_box_outline_blank,
                 size: 20,
-                color: _sortMethod == SortMethod.byStatus ? Theme.of(context).colorScheme.primary : Colors.grey,
+                color: _sortMethod == SortMethod.byStatus ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
               ),
             ),
           ),
@@ -467,9 +469,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 80, color: Colors.grey.shade400),
+            Icon(Icons.check_circle_outline, size: 80, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
-            const Text('Harika! Bu gün için görev yok.', style: TextStyle(fontSize: 18, color: Colors.grey)),
+             Text('Harika! Bu gün için görev yok.', style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.outline)),
           ],
         ),
       );
