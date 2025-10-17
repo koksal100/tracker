@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trackerapp/controllers/notification_controller.dart';
 import 'package:trackerapp/screens/task_detail_screen.dart';
 import '../models/task.dart';
+
+enum SortMethod { byCreation, byStatus, byPriority, byTime }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final DateTime _initialDate = DateTime.now();
 
   int _selectedIndex = 0;
+  SortMethod _sortMethod = SortMethod.byCreation;
+  bool _sortAscending = true;
 
   @override
   void initState() {
@@ -107,6 +110,42 @@ class _HomeScreenState extends State<HomeScreen> {
       final dayName = _dayNames[index];
       return '${dayName.substring(0, 3)} ${date.day}';
     });
+  }
+
+  void _setSortMethod(SortMethod method) {
+    setState(() {
+      if (_sortMethod == method) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortMethod = method;
+        _sortAscending = true;
+      }
+    });
+  }
+
+  List<Task> _sortTasks(List<Task> tasks) {
+    List<Task> sortedTasks = List.from(tasks);
+    switch (_sortMethod) {
+      case SortMethod.byStatus:
+        sortedTasks.sort((a, b) => (a.isCompleted ? 1 : 0).compareTo(b.isCompleted ? 1 : 0));
+        break;
+      case SortMethod.byPriority:
+        sortedTasks.sort((a, b) => a.priority.index.compareTo(b.priority.index));
+        break;
+      case SortMethod.byTime:
+        sortedTasks.sort((a, b) {
+          if (a.time == null && b.time == null) return 0;
+          if (a.time == null) return 1;
+          if (b.time == null) return -1;
+          final aMinutes = a.time!.hour * 60 + a.time!.minute;
+          final bMinutes = b.time!.hour * 60 + b.time!.minute;
+          return aMinutes.compareTo(bMinutes);
+        });
+        break;
+      case SortMethod.byCreation:
+        break;
+    }
+    return _sortAscending ? sortedTasks : sortedTasks.reversed.toList();
   }
 
   void _addTask(String name, String description, TimeOfDay? time, TaskPriority priority, bool notificationsEnabled) {
@@ -310,6 +349,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildSortableHeader() {
+    const boldStyle = TextStyle(fontWeight: FontWeight.bold);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: 40,
+            child: TextButton(
+              onPressed: () => _setSortMethod(SortMethod.byStatus),
+              child: Icon(
+                Icons.check_box_outline_blank,
+                size: 20,
+                color: _sortMethod == SortMethod.byStatus ? Theme.of(context).colorScheme.primary : Colors.grey,
+              ),
+            ),
+          ),
+          const Expanded(child: Text('Görev', style: boldStyle)),
+          SizedBox(
+            width: 100,
+            child: TextButton.icon(
+              onPressed: () => _setSortMethod(SortMethod.byTime),
+              icon: _sortMethod == SortMethod.byTime
+                  ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 16)
+                  : const SizedBox(width: 4),
+              label: const Text('Saat', style: boldStyle),
+            ),
+          ),
+          SizedBox(
+            width: 100,
+            child: TextButton.icon(
+              onPressed: () => _setSortMethod(SortMethod.byPriority),
+              icon: _sortMethod == SortMethod.byPriority
+                  ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 16)
+                  : const SizedBox(width: 4),
+              label: const Text('Önem', style: boldStyle),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTaskList(List<Task> tasks, DateTime dateForTasks) {
     if (tasks.isEmpty) {
       return Center(
@@ -330,9 +412,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final task = tasks[index];
         return Card(
           elevation: 1.0,
-          margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
+          margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4.0),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          child: ListTile(
+          child: InkWell(
             onTap: () async {
               final result = await Navigator.push(
                 context,
@@ -352,29 +434,49 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               }
             },
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: task.description.isNotEmpty ? Text(task.description) : null,
-            leading: Checkbox(
-              value: task.isCompleted,
-              onChanged: (val) {
-                setState(() => task.isCompleted = val ?? false);
-                _saveTasks();
-              },
-              activeColor: _getPriorityColor(task.priority),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (task.notificationsEnabled)
-                  const Icon(Icons.notifications, size: 16, color: Colors.grey),
-                if (task.time != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8.0, left: 4.0),
-                    child: Text(task.time!.format(context), style: const TextStyle(fontWeight: FontWeight.w500)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                children: <Widget>[
+                  SizedBox(
+                    width: 40,
+                    child: Checkbox(
+                      value: task.isCompleted,
+                      onChanged: (val) {
+                        setState(() => task.isCompleted = val ?? false);
+                        _saveTasks();
+                      },
+                      activeColor: _getPriorityColor(task.priority),
+                    ),
                   ),
-                ..._generatePriorityIcons(task.priority),
-              ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        if (task.description.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Text(task.description, style: Theme.of(context).textTheme.bodySmall),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    width: 100,
+                    child: task.time != null
+                        ? Text(task.time!.format(context), textAlign: TextAlign.center)
+                        : const Text('-', textAlign: TextAlign.center),
+                  ),
+                  SizedBox(
+                    width: 100,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: _generatePriorityIcons(task.priority),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -464,7 +566,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 final dateForPage = startOfWeek.add(Duration(days: index));
                 final dateKey = _getDateKey(dateForPage);
                 final tasksForDay = _tasks[dateKey] ?? [];
-                return _buildTaskList(tasksForDay, dateForPage);
+                final sortedTasks = _sortTasks(tasksForDay);
+                return Column(
+                  children: [
+                    _buildSortableHeader(),
+                    Expanded(
+                      child: _buildTaskList(sortedTasks, dateForPage),
+                    ),
+                  ],
+                );
               },
             ),
           ),

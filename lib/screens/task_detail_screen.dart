@@ -80,81 +80,83 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Görev Adı', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Açıklama', border: OutlineInputBorder()),
-                keyboardType: TextInputType.multiline,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<TaskPriority>(
-                value: _selectedPriority,
-                decoration: const InputDecoration(labelText: 'Önem Derecesi', border: OutlineInputBorder()),
-                items: TaskPriority.values.map((priority) {
-                  return DropdownMenuItem(value: priority, child: Text(priority.displayName));
-                }).toList(),
-                onChanged: (newValue) {
-                  if (newValue != null) {
-                    setState(() => _selectedPriority = newValue);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              Card(
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
-                child: ListTile(
-                  leading: const Icon(Icons.access_time),
-                  title: const Text('Görev Saati'),
-                  subtitle: Text(_selectedTime?.format(context) ?? 'Belirtilmedi'),
-                  onTap: () async {
-                    final TimeOfDay? picked = await showTimePicker(
-                      context: context,
-                      initialTime: _selectedTime ?? TimeOfDay.now(),
-                    );
-                    if (picked != null) {
-                      setState(() => _selectedTime = picked);
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Görev Adı', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(labelText: 'Açıklama', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.multiline,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<TaskPriority>(
+                  value: _selectedPriority,
+                  decoration: const InputDecoration(labelText: 'Önem Derecesi', border: OutlineInputBorder()),
+                  items: TaskPriority.values.map((priority) {
+                    return DropdownMenuItem(value: priority, child: Text(priority.displayName));
+                  }).toList(),
+                  onChanged: (newValue) {
+                    if (newValue != null) {
+                      setState(() => _selectedPriority = newValue);
                     }
                   },
-                  trailing: _selectedTime != null ? IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.grey),
-                    onPressed: () => setState(() {
-                      _selectedTime = null;
-                      _notificationsEnabled = false;
-                    }),
-                  ) : null,
                 ),
-              ),
-              if (_selectedTime != null)
-                SwitchListTile(
-                  title: const Text('Bildirimleri Aç'),
-                  subtitle: const Text('Görev zamanı geldiğinde bildirim gönder.'),
-                  value: _notificationsEnabled,
-                  onChanged: (bool value) => setState(() => _notificationsEnabled = value),
+                const SizedBox(height: 16),
+                Card(
+                  margin: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
+                  child: ListTile(
+                    leading: const Icon(Icons.access_time),
+                    title: const Text('Görev Saati'),
+                    subtitle: Text(_selectedTime?.format(context) ?? 'Belirtilmedi'),
+                    onTap: () async {
+                      final TimeOfDay? picked = await showTimePicker(
+                        context: context,
+                        initialTime: _selectedTime ?? TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() => _selectedTime = picked);
+                      }
+                    },
+                    trailing: _selectedTime != null ? IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.grey),
+                      onPressed: () => setState(() {
+                        _selectedTime = null;
+                        _notificationsEnabled = false;
+                      }),
+                    ) : null,
+                  ),
                 ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.save),
-                label: const Text('Değişiklikleri Kaydet'),
-                onPressed: _saveTask,
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-              ),
-              const SizedBox(height: 12),
-              TextButton.icon(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                label: const Text('Görevi Sil', style: TextStyle(color: Colors.red)),
-                onPressed: _deleteTask,
-              ),
-            ],
+                if (_selectedTime != null)
+                  SwitchListTile(
+                    title: const Text('Bildirimleri Aç'),
+                    subtitle: const Text('Görev zamanı geldiğinde bildirim gönder.'),
+                    value: _notificationsEnabled,
+                    onChanged: (bool value) => setState(() => _notificationsEnabled = value),
+                  ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.save),
+                  label: const Text('Değişiklikleri Kaydet'),
+                  onPressed: _saveTask,
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  label: const Text('Görevi Sil', style: TextStyle(color: Colors.red)),
+                  onPressed: _deleteTask,
+                ),
+              ],
+            ),
           ),
         ),
       ),
