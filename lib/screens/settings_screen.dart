@@ -1,5 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/custom_app_bar.dart';
 
 class SettingsScreen extends StatelessWidget {
   final ThemeMode themeMode;
@@ -19,9 +21,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ayarlar'),
-      ),
+      appBar: const CustomAppBar(title: 'Ayarlar'),
       body: ListView(
         children: [
           ListTile(

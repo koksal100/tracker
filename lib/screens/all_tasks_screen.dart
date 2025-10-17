@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_bar.dart';
 
 class AllTasksScreen extends StatelessWidget {
   const AllTasksScreen({super.key});
@@ -7,9 +7,7 @@ class AllTasksScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tüm Görevler'),
-      ),
+      appBar: const CustomAppBar(title: 'Tüm Görevler'),
       body: const Center(
         child: Text('Tüm görevler burada gösterilecek.'),
       ),

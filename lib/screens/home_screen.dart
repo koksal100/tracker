@@ -1,7 +1,9 @@
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
+import '../widgets/custom_app_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -321,11 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Haftalık Görev Takibi'),
-        centerTitle: true,
-        elevation: 1,
-      ),
+      appBar: const CustomAppBar(title: 'Haftalık Görev Takibi'),
       body: Column(
         children: [
           Container(
