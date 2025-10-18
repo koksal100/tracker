@@ -1,17 +1,18 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trackerapp/models/routine.dart';
 import 'package:trackerapp/models/task.dart';
 import 'package:trackerapp/screens/create_routine_screen.dart';
 import 'package:trackerapp/services/routine_service.dart';
+import 'package:trackerapp/services/task_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
 
 enum SortMethodRoutines { byName, byFrequency, byTime, byPriority }
 
 class AllTasksScreen extends StatefulWidget {
-  const AllTasksScreen({super.key});
+  final VoidCallback onRoutinesChanged;
+
+  const AllTasksScreen({super.key, required this.onRoutinesChanged});
 
   @override
   State<AllTasksScreen> createState() => _AllTasksScreenState();
@@ -19,6 +20,7 @@ class AllTasksScreen extends StatefulWidget {
 
 class _AllTasksScreenState extends State<AllTasksScreen> {
   final RoutineService _routineService = RoutineService();
+  final TaskService _taskService = TaskService();
   List<Routine> _routines = [];
   bool _isLoading = true;
 
@@ -100,25 +102,12 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
       _routines.removeWhere((r) => r.id == routine.id);
       await _routineService.saveRoutines(_routines);
 
-      // 2. Remove its generated tasks from the main task list
-      final prefs = await SharedPreferences.getInstance();
-      final String? tasksString = prefs.getString('tasks');
-      if (tasksString != null) {
-        Map<String, dynamic> tasksJson = jsonDecode(tasksString);
-        Map<String, List<dynamic>> tasks = tasksJson.map((key, value) => MapEntry(key, value as List<dynamic>));
-        
-        tasks.forEach((dateKey, taskList) {
-          taskList.removeWhere((taskJson) {
-            String taskId = taskJson['id'];
-            bool isCompleted = taskJson['isCompleted'] ?? false;
-            return taskId.startsWith(routine.id + '-') && !isCompleted;
-          });
-        });
-
-        await prefs.setString('tasks', jsonEncode(tasks));
-      }
+      // 2. Remove its generated tasks using the TaskService
+      await _taskService.deleteTasksByRoutine(routine.id);
       
       setState(() {});
+      widget.onRoutinesChanged();
+
        if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Rutin ve ilgili görevler silindi.')),
@@ -148,6 +137,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
           _routines.add(result);
         });
       }
+      widget.onRoutinesChanged();
     }
   }
 

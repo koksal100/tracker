@@ -2,11 +2,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trackerapp/controllers/notification_controller.dart';
 import 'package:trackerapp/models/routine.dart';
 import 'package:trackerapp/screens/task_detail_screen.dart';
 import 'package:trackerapp/services/routine_service.dart';
+import 'package:trackerapp/services/task_service.dart';
 import '../models/task.dart';
 import '../utils/app_colors.dart';
 
@@ -16,16 +16,17 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late PageController _pageController;
   final List<GlobalKey> _dayKeys = List.generate(7, (_) => GlobalKey());
 
-  final Map<String, List<Task>> _tasks = {};
+  Map<String, List<Task>> _tasks = {};
   List<Routine> _routines = [];
   final RoutineService _routineService = RoutineService();
+  final TaskService _taskService = TaskService();
 
   final List<String> _dayNames = [
     'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'
@@ -60,6 +61,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _loadDataAndGenerateTasks();
     }
+  }
+
+  Future<void> refreshTasks() async {
+    await _loadDataAndGenerateTasks();
   }
 
   Future<void> _loadDataAndGenerateTasks() async {
@@ -102,27 +107,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _saveTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final Map<String, dynamic> tasksToSave = _tasks.map(
-      (key, value) => MapEntry(key, value.map((task) => task.toJson()).toList()),
-    );
-    final String encodedTasks = jsonEncode(tasksToSave);
-    await prefs.setString('tasks', encodedTasks);
+    await _taskService.saveTasks(_tasks);
   }
 
   Future<void> _loadTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? encodedTasks = prefs.getString('tasks');
-    if (encodedTasks == null || encodedTasks.isEmpty) return;
-
-    final Map<String, dynamic> decodedTasks = jsonDecode(encodedTasks);
-    _tasks.clear();
-    decodedTasks.forEach((key, value) {
-      final List<Task> loadedTasks = (value as List)
-          .map((taskJson) => Task.fromJson(taskJson))
-          .toList();
-      _tasks[key] = loadedTasks;
-    });
+    _tasks = await _taskService.loadTasks();
   }
 
   Future<void> _loadRoutines() async {

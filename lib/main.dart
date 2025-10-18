@@ -164,6 +164,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  final GlobalKey<HomeScreenState> _homeScreenKey = GlobalKey<HomeScreenState>();
 
   @override
   void initState() {
@@ -182,12 +183,16 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  void _onRoutinesChanged() {
+    _homeScreenKey.currentState?.refreshTasks();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Rebuild the options list on every build to pass the latest themeMode.
     final List<Widget> _widgetOptions = <Widget>[
-      const HomeScreen(),
-      const AllTasksScreen(),
+      HomeScreen(key: _homeScreenKey),
+      AllTasksScreen(onRoutinesChanged: _onRoutinesChanged),
       SettingsScreen(
         themeMode: themeNotifier.value,
         onThemeModeChanged: (newMode) {
